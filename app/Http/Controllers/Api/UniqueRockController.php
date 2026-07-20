@@ -187,7 +187,7 @@ class UniqueRockController extends Controller
     private function generateQrCode(UniqueRock $rock): void
     {
         $frontendUrl = rtrim(config('app.frontend_url', env('FRONTEND_URL', 'https://alaswatukebonan.my.id')), '/');
-        $targetUrl = "{$frontendUrl}/bebatuan-unik/{$rock->id}";
+        $targetUrl = "{$frontendUrl}/unique-rocks/{$rock->id}";
 
         $qrSvg = QrCode::format('svg')
             ->size(300)

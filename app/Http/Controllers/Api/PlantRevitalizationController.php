@@ -186,8 +186,8 @@ class PlantRevitalizationController extends Controller
 
     private function generateQrCode(PlantRevitalization $plant): void
     {
-        $frontendUrl = rtrim(config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:3000')), '/');
-        $targetUrl = "{$frontendUrl}/revitalisasi-tanaman/{$plant->id}";
+        $frontendUrl = rtrim(config('app.frontend_url', env('FRONTEND_URL', 'https://alaswatukebonan.my.id')), '/');
+        $targetUrl = "{$frontendUrl}/plant-revitalizations/{$plant->id}";
 
         $qrSvg = QrCode::format('svg')
             ->size(300)
