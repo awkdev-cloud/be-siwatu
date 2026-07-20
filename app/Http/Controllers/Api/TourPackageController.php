@@ -31,18 +31,86 @@ class TourPackageController extends Controller
         ]);
     }
 
-    public function adminIndex()
+    // public function adminIndex()
+    // {
+    //     $packages = TourPackage::orderBy('sort_order')
+    //         ->orderByDesc('created_at')
+    //         ->get()
+    //         ->map(function ($package) {
+    //             return $this->formatPackage($package);
+    //         });
+
+    //     return response()->json([
+    //         'message' => 'Data paket wisata admin berhasil diambil.',
+    //         'data' => $packages,
+    //     ]);
+    // }
+
+    public function adminIndex(Request $request)
     {
-        $packages = TourPackage::orderBy('sort_order')
+        $query = TourPackage::query();
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+
+            $query->where(function ($packageQuery) use ($search) {
+                $packageQuery
+                    ->where('title', 'like', "%{$search}%")
+                    ->orWhere('package_type', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->status === 'active') {
+            $query->where('is_active', true);
+        }
+
+        if ($request->status === 'inactive') {
+            $query->where('is_active', false);
+        }
+
+        if ($request->filled('featured')) {
+            $query->where(
+                'is_featured',
+                filter_var(
+                    $request->featured,
+                    FILTER_VALIDATE_BOOLEAN
+                )
+            );
+        }
+
+        $packages = $query
+            ->orderBy('sort_order')
             ->orderByDesc('created_at')
             ->get()
-            ->map(function ($package) {
-                return $this->formatPackage($package);
-            });
+            ->map(fn ($package) => $this->formatPackage($package));
 
         return response()->json([
             'message' => 'Data paket wisata admin berhasil diambil.',
             'data' => $packages,
+            'meta' => [
+                'total' => TourPackage::count(),
+                'active' => TourPackage::where(
+                    'is_active',
+                    true
+                )->count(),
+                'inactive' => TourPackage::where(
+                    'is_active',
+                    false
+                )->count(),
+                'featured' => TourPackage::where(
+                    'is_featured',
+                    true
+                )->count(),
+            ],
+        ]);
+    }
+
+    public function adminShow(TourPackage $tourPackage)
+    {
+        return response()->json([
+            'message' => 'Detail paket wisata admin berhasil diambil.',
+            'data' => $this->formatPackage($tourPackage),
         ]);
     }
 

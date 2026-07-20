@@ -24,9 +24,31 @@ class PlantRevitalizationController extends Controller
         ]);
     }
 
-    public function adminIndex()
+    public function adminIndex(Request $request)
     {
-        $plants = PlantRevitalization::orderBy('sort_order')
+        $query = PlantRevitalization::query();
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+
+            $query->where(function ($plantQuery) use ($search) {
+                $plantQuery
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('scientific_name', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->status === 'published') {
+            $query->where('is_published', true);
+        }
+
+        if ($request->status === 'draft') {
+            $query->where('is_published', false);
+        }
+
+        $plants = $query
+            ->orderBy('sort_order')
             ->orderByDesc('created_at')
             ->get()
             ->map(fn ($plant) => $this->formatPlant($plant));
@@ -34,6 +56,17 @@ class PlantRevitalizationController extends Controller
         return response()->json([
             'message' => 'Data revitalisasi tanaman admin berhasil diambil.',
             'data' => $plants,
+            'meta' => [
+                'total' => PlantRevitalization::count(),
+                'published' => PlantRevitalization::where(
+                    'is_published',
+                    true
+                )->count(),
+                'draft' => PlantRevitalization::where(
+                    'is_published',
+                    false
+                )->count(),
+            ],
         ]);
     }
 

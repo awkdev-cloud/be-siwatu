@@ -32,12 +32,100 @@ class GalleryController extends Controller
         ]);
     }
 
+    // public function show(Gallery $gallery)
+    // {
+    //     $gallery->load('category');
+
+    //     return response()->json([
+    //         'message' => 'Detail galeri berhasil diambil.',
+    //         'data' => $this->formatGallery($gallery),
+    //     ]);
+    // }
     public function show(Gallery $gallery)
     {
+        if (!$gallery->is_published) {
+            return response()->json([
+                'message' => 'Galeri tidak ditemukan.',
+            ], 404);
+        }
+
         $gallery->load('category');
 
         return response()->json([
             'message' => 'Detail galeri berhasil diambil.',
+            'data' => $this->formatGallery($gallery),
+        ]);
+    }
+
+    public function adminIndex(Request $request)
+    {
+        $query = Gallery::with('category');
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+
+            $query->where(function ($galleryQuery) use ($search) {
+                $galleryQuery
+                    ->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->status === 'published') {
+            $query->where('is_published', true);
+        }
+
+        if ($request->status === 'draft') {
+            $query->where('is_published', false);
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where(
+                'gallery_category_id',
+                $request->category_id
+            );
+        }
+
+        if ($request->filled('category')) {
+            $query->whereHas(
+                'category',
+                function ($categoryQuery) use ($request) {
+                    $categoryQuery->where(
+                        'slug',
+                        $request->category
+                    );
+                }
+            );
+        }
+
+        $galleries = $query
+            ->latest()
+            ->get()
+            ->map(fn ($gallery) => $this->formatGallery($gallery));
+
+        return response()->json([
+            'message' => 'Data galeri admin berhasil diambil.',
+            'data' => $galleries,
+            'meta' => [
+                'total' => Gallery::count(),
+                'published' => Gallery::where(
+                    'is_published',
+                    true
+                )->count(),
+                'draft' => Gallery::where(
+                    'is_published',
+                    false
+                )->count(),
+            ],
+        ]);
+    }
+
+    public function adminShow(Gallery $gallery)
+    {
+        $gallery->load('category');
+
+        return response()->json([
+            'message' => 'Detail galeri admin berhasil diambil.',
             'data' => $this->formatGallery($gallery),
         ]);
     }

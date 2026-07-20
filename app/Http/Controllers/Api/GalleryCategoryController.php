@@ -21,6 +21,59 @@ class GalleryCategoryController extends Controller
         ]);
     }
 
+    public function adminIndex(Request $request)
+    {
+        $query = GalleryCategory::withCount('galleries');
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+
+            $query->where(function ($categoryQuery) use ($search) {
+                $categoryQuery
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->status === 'active') {
+            $query->where('is_active', true);
+        }
+
+        if ($request->status === 'inactive') {
+            $query->where('is_active', false);
+        }
+
+        $categories = $query
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'message' => 'Data kategori galeri admin berhasil diambil.',
+            'data' => $categories,
+            'meta' => [
+                'total' => GalleryCategory::count(),
+                'active' => GalleryCategory::where(
+                    'is_active',
+                    true
+                )->count(),
+                'inactive' => GalleryCategory::where(
+                    'is_active',
+                    false
+                )->count(),
+            ],
+        ]);
+    }
+
+    public function adminShow(GalleryCategory $galleryCategory)
+    {
+        $galleryCategory->loadCount('galleries');
+
+        return response()->json([
+            'message' => 'Detail kategori galeri admin berhasil diambil.',
+            'data' => $galleryCategory,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

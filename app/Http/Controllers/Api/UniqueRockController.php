@@ -24,9 +24,31 @@ class UniqueRockController extends Controller
         ]);
     }
 
-    public function adminIndex()
+    public function adminIndex(Request $request)
     {
-        $rocks = UniqueRock::orderBy('sort_order')
+        $query = UniqueRock::query();
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+
+            $query->where(function ($rockQuery) use ($search) {
+                $rockQuery
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('scientific_name', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->status === 'published') {
+            $query->where('is_published', true);
+        }
+
+        if ($request->status === 'draft') {
+            $query->where('is_published', false);
+        }
+
+        $rocks = $query
+            ->orderBy('sort_order')
             ->orderByDesc('created_at')
             ->get()
             ->map(fn ($rock) => $this->formatRock($rock));
@@ -34,6 +56,17 @@ class UniqueRockController extends Controller
         return response()->json([
             'message' => 'Data bebatuan unik admin berhasil diambil.',
             'data' => $rocks,
+            'meta' => [
+                'total' => UniqueRock::count(),
+                'published' => UniqueRock::where(
+                    'is_published',
+                    true
+                )->count(),
+                'draft' => UniqueRock::where(
+                    'is_published',
+                    false
+                )->count(),
+            ],
         ]);
     }
 

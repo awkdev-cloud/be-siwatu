@@ -20,13 +20,56 @@ class SocialLinkController extends Controller
         ]);
     }
 
-    public function adminIndex()
+    public function adminIndex(Request $request)
     {
-        $socialLinks = SocialLink::orderBy('sort_order')->get();
+        $query = SocialLink::query();
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+
+            $query->where(function ($socialQuery) use ($search) {
+                $socialQuery
+                    ->where('platform', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%")
+                    ->orWhere('url', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->status === 'active') {
+            $query->where('is_active', true);
+        }
+
+        if ($request->status === 'inactive') {
+            $query->where('is_active', false);
+        }
+
+        $socialLinks = $query
+            ->orderBy('sort_order')
+            ->orderBy('platform')
+            ->get();
 
         return response()->json([
             'message' => 'Data media sosial admin berhasil diambil.',
             'data' => $socialLinks,
+            'meta' => [
+                'total' => SocialLink::count(),
+                'active' => SocialLink::where(
+                    'is_active',
+                    true
+                )->count(),
+                'inactive' => SocialLink::where(
+                    'is_active',
+                    false
+                )->count(),
+            ],
+        ]);
+    }
+
+    public function adminShow(SocialLink $socialLink)
+    {
+        return response()->json([
+            'message' => 'Detail media sosial admin berhasil diambil.',
+            'data' => $socialLink,
         ]);
     }
 

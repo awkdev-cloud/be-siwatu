@@ -28,18 +28,60 @@ class ReviewController extends Controller
         ]);
     }
 
-    public function adminIndex()
+    public function adminIndex(Request $request)
     {
-        $reviews = Review::orderByDesc('review_date')
+        $query = Review::query();
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+
+            $query->where(function ($reviewQuery) use ($search) {
+                $reviewQuery
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('comment', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->status === 'published') {
+            $query->where('is_published', true);
+        }
+
+        if ($request->status === 'draft') {
+            $query->where('is_published', false);
+        }
+
+        if ($request->filled('rating')) {
+            $query->where('rating', $request->rating);
+        }
+
+        $reviews = $query
+            ->orderByDesc('review_date')
             ->orderByDesc('created_at')
             ->get()
-            ->map(function ($review) {
-                return $this->formatReview($review);
-            });
+            ->map(fn ($review) => $this->formatReview($review));
 
         return response()->json([
             'message' => 'Data review admin berhasil diambil.',
             'data' => $reviews,
+            'meta' => [
+                'total' => Review::count(),
+                'published' => Review::where(
+                    'is_published',
+                    true
+                )->count(),
+                'draft' => Review::where(
+                    'is_published',
+                    false
+                )->count(),
+            ],
+        ]);
+    }
+
+    public function adminShow(Review $review)
+    {
+        return response()->json([
+            'message' => 'Detail review admin berhasil diambil.',
+            'data' => $this->formatReview($review),
         ]);
     }
 
